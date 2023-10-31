@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 
 import androidx.compose.foundation.layout.Column
@@ -28,6 +31,7 @@ import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +54,18 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 fun Greeting(name: String) {
-    val expanded = remember { mutableStateOf(false) }
-    val extraPadding = if (expanded.value) 48.dp else 0.dp
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    // .value 붙여야함
+//    val expanded = remember { mutableStateOf(false) }
+    val extraPadding by animateDpAsState(
+        if (expanded) 48.dp else 0.dp,
+        label = "extraPadding",
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+    //val extraPadding = if (expanded.value) 48.dp else 0.dp
     Surface(
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
@@ -66,13 +80,13 @@ fun Greeting(name: String) {
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(bottom = extraPadding)
+                    .padding(bottom = extraPadding.coerceAtLeast(0.dp))
             ) {
                 Text(text = "Hello,")
                 Text(text = name)
             }
-            ElevatedButton(onClick = { expanded.value = !expanded.value }) {
-                Text(if (expanded.value) "Show less" else "Show more")
+            ElevatedButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Show less" else "Show more")
             }
         }
     }
@@ -112,7 +126,7 @@ fun GreetingPreview() {
 }
 
 @Composable
-fun OnboardingScreen(onContinuedClicked: () -> Unit,modifier: Modifier = Modifier) {
+fun OnboardingScreen(onContinuedClicked: () -> Unit, modifier: Modifier = Modifier) {
     // by 키워드는 매번 .value를 입력할 필요가 없도록 해주는 속성 위임입니다. val -> var
     // MyApp으로 올라감
     //var shouldShowOnboarding by remember { mutableStateOf(true) }
@@ -124,7 +138,8 @@ fun OnboardingScreen(onContinuedClicked: () -> Unit,modifier: Modifier = Modifie
         Text(text = "Welcom to the Basics Codelab!")
         Button(
             modifier = Modifier.padding(vertical = 24.dp),
-            onClick = onContinuedClicked) {
+            onClick = onContinuedClicked
+        ) {
             Text(text = "Continue")
         }
     }
@@ -140,7 +155,9 @@ fun OnboardingPreview() {
 
 @Composable
 fun MyApp(modifier: Modifier = Modifier) {
-    var shouldShowOnboarding by remember { mutableStateOf(true) }
+    // remember와 다르게 화면 회전 같은 프로세스 중단에도 상태를 저장 하기 위해서 사용 -> rememberSaveable
+    var shouldShowOnboarding by rememberSaveable { mutableStateOf(true) }
+//    var shouldShowOnboarding by remember { mutableStateOf(true) }
     val names: List<String> = listOf("kim", "Lee")
     Surface() {
 //        if (shouldShowOnboarding)
@@ -148,15 +165,19 @@ fun MyApp(modifier: Modifier = Modifier) {
 //        else
 //            //실헹 안됨
 //            Greetings(onClick = {shouldShowOnboarding=true})
-        when(shouldShowOnboarding){
-            true -> OnboardingScreen(onContinuedClicked = {shouldShowOnboarding = false})
-            else -> Greetings(onClick = {shouldShowOnboarding=true})
+        when (shouldShowOnboarding) {
+            true -> OnboardingScreen(onContinuedClicked = { shouldShowOnboarding = false })
+            else -> Greetings(onClick = { shouldShowOnboarding = true })
         }
     }
 }
 
 @Composable
-fun Greetings(modifier: Modifier = Modifier, names: List<String> = List(1000){"$it"},onClick: () -> Unit) {
+fun Greetings(
+    modifier: Modifier = Modifier,
+    names: List<String> = List(1000) { "$it" },
+    onClick: () -> Unit
+) {
 //    Column(modifier = modifier.padding(vertical = 4.dp)) {
 //        for (name in names) {
 //            Greeting(name)
@@ -167,11 +188,17 @@ fun Greetings(modifier: Modifier = Modifier, names: List<String> = List(1000){"$
 //        }
 //    }
     // 참고: LazyColumn과 LazyRow는 Android 뷰의 RecyclerView와 동일합니다.
-    LazyColumn(modifier = modifier.padding(vertical = 4.dp)){
-        items(items = names){
-            name -> Greeting(name = name)
+    Column(modifier) {
+        Button(onClick = { /*TODO*/ },modifier.padding(horizontal = 8.dp)) {
+            Text("back")
+        }
+        LazyColumn(modifier = modifier.padding(vertical = 4.dp)) {
+            items(items = names) { name ->
+                Greeting(name = name)
+            }
         }
     }
+
 }
 
 @Preview(showBackground = true, widthDp = 320)
