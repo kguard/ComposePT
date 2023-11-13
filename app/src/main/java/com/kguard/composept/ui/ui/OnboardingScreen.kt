@@ -29,7 +29,7 @@ fun OnboardingScreen(onContinuedClicked: (String?) -> Unit, modifier: Modifier =
     //
     val error by remember { derivedStateOf { editText.isNotEmpty() } }
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
